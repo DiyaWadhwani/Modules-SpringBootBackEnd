@@ -12,9 +12,11 @@ import com.wolken.wolkenapp.exception.CompanyException;
 import com.wolken.wolkenapp.exception.ContactException;
 import com.wolken.wolkenapp.exception.DesignationException;
 import com.wolken.wolkenapp.exception.EmailException;
-import com.wolken.wolkenapp.exception.NameException;
+import com.wolken.wolkenapp.exception.FirstNameException;
+import com.wolken.wolkenapp.exception.LastNameException;
 import com.wolken.wolkenapp.exception.PasswordException;
 import com.wolken.wolkenapp.exception.ResourceNotFoundException;
+import com.wolken.wolkenapp.exception.UserExistsException;
 import com.wolken.wolkenapp.exception.UsernameException;
 import com.wolken.wolkenapp.repository.EmpRepo;
 
@@ -86,37 +88,90 @@ public class EmployeeServiceImpl implements EmployeeService {
 		EmployeeEntity entity = null;
 		
 		try {
-
+			logger.info("Entered try block in service method to register employee");
+			logger.info("Checking if passed entity is null");
 			if (employeeEntity == null) {
 				logger.warn("Entity passed is null !!");
 				throw new NullPointerException();
 			}
-			if (employeeEntity.getEmpFname().length() < 3 || employeeEntity.getEmpFname().length() > 15) {
-				throw new NameException();
+			logger.info("passed entity is not null");
+			logger.info("Checking if user exists");
+			entity = empRepo.findByEmpUname(employeeEntity.getEmpUname());
+			logger.info("Find by username : "+entity);
+			if(entity == null) {
+				logger.info("No entry with given username found");
+				entity = empRepo.findByEmpFname(employeeEntity.getEmpFname());
+				logger.info("Find by firstname : "+entity);
+				if(entity == null) {
+					logger.info("No entry with given firstname found");
+					entity = empRepo.findByEmpLname(employeeEntity.getEmpLname());
+					logger.info("Find by lastname : "+entity);
+					if(entity != null) {
+						logger.info("Entry with given lastname found, checking if username or fullname match");
+						if(entity.getEmpUname().equals(employeeEntity.getEmpUname()) || (
+								entity.getEmpFname().equals(employeeEntity.getEmpFname()) &&
+								entity.getEmpLname().equals(employeeEntity.getEmpLname()))) {
+							logger.info("Either username or fullname already exists");
+							logger.warn("User already exists");
+							logger.error("Registration failed");
+							entity = null;
+//							return entity;
+							throw new UserExistsException();
+							}
+					}
+				}
 			}
+			else if(entity!=null) {
+				if(entity.getEmpUname().equals(employeeEntity.getEmpUname()) && (
+						entity.getEmpFname().equals(employeeEntity.getEmpFname()) ||
+						entity.getEmpLname().equals(employeeEntity.getEmpLname()))) {
+					logger.warn("User already exists");
+					logger.error("Registration failed");
+					entity = null;
+//					return entity;
+					throw new UserExistsException();
+					}
+			}
+			logger.info("User does not exist");
+			logger.info("Validating First name");
+			if (employeeEntity.getEmpFname().length() < 3 || employeeEntity.getEmpFname().length() > 25) {
+				throw new FirstNameException();
+			}
+			logger.info("Validating Last name");
+			if(employeeEntity.getEmpLname().length() > 30) {
+				throw new LastNameException();
+			}
+			logger.info("Validating Username");
 			if (employeeEntity.getEmpUname().length() < 3 || employeeEntity.getEmpUname().length() > 25) {
 				throw new UsernameException();
 			}
+			logger.info("Validating Email");
 			if (employeeEntity.getEmpEmail().length() < 10) {
 				throw new EmailException();
 			}
+			logger.info("Validating Contact");
 			if (String.valueOf(employeeEntity.getEmpContact()).length() < 10) {
 				throw new ContactException();
 			}
+			logger.info("Validating Company");
 			if (employeeEntity.getEmpCompany().length() < 3) {
 				throw new CompanyException();
 			}
+			logger.info("Validating Designation");
 			if (employeeEntity.getEmpDesignation().length() < 3) {
 				throw new DesignationException();
 			}
+			logger.info("Validating Password");
 			if (employeeEntity.getEmpPassword().length() < 6 || employeeEntity.getEmpPassword().length() > 25) {
 				throw new PasswordException();
-			} else {
+			}
+			else {
+				logger.info("Validation complete, adding to db");
 				logger.info("Entity " + employeeEntity + " added into database");
 				entity = empRepo.save(employeeEntity);
 			}
-		} catch (NullPointerException | NameException | UsernameException | EmailException | ContactException
-				| CompanyException | DesignationException | PasswordException e) {
+		} catch (NullPointerException | FirstNameException | LastNameException | UsernameException | EmailException | ContactException
+				| CompanyException | DesignationException | PasswordException | UserExistsException e) {
 			
 			logger.warn(e + " exception Thrown");
 			e.toString();
@@ -144,7 +199,10 @@ public class EmployeeServiceImpl implements EmployeeService {
 				throw new NullPointerException();
 			}
 			if (empEntity.getEmpFname().length() < 3 || empEntity.getEmpFname().length() > 15) {
-				throw new NameException();
+				throw new FirstNameException();
+			}
+			if(empEntity.getEmpLname().length() > 30) {
+				throw new LastNameException();
 			}
 			if (empEntity.getEmpUname().length() < 3 || empEntity.getEmpUname().length() > 25) {
 				throw new UsernameException();
@@ -174,8 +232,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 				empEntity.setEmpPassword(employeeEntity.getEmpPassword());
 				logger.info("Entity " + employeeEntity + " added into database");
 			}
-		} catch (NullPointerException | NameException | UsernameException | EmailException | ContactException
-				| CompanyException | DesignationException | PasswordException e) {
+		} catch (NullPointerException | FirstNameException | LastNameException | UsernameException | EmailException | ContactException | CompanyException | DesignationException | PasswordException e) {
 			logger.warn(e + " exception Thrown");
 			e.toString();
 			logger.error("Failed to add entity " + employeeEntity + " to the database");
