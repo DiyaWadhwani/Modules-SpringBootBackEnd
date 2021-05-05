@@ -1,0 +1,94 @@
+package com.wolken.wolkenapp.controller;
+
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.wolken.wolkenapp.dto.JobDTO;
+import com.wolken.wolkenapp.entity.JobEntity;
+import com.wolken.wolkenapp.service.JobService;
+
+import net.bytebuddy.description.type.RecordComponentList;
+
+@CrossOrigin("http://localhost:4200")
+@RestController
+@RequestMapping("/")
+public class JobController {
+
+	@Autowired
+	private JobService jobService;
+	
+	Logger logger = LoggerFactory.getLogger(JobController.class);
+	
+	@GetMapping("/jobs")
+	public ResponseEntity<List<JobEntity>> getAllJobs() {
+		
+		List<JobEntity> jobList = null;
+		try {
+			jobList = jobService.validateAndFindAll();
+		}
+		catch(NullPointerException e) {
+			logger.warn(e+" exception thrown");
+			e.toString();
+		}
+		if(jobList != null) {
+			return new ResponseEntity<List<JobEntity>>(jobList, HttpStatus.OK);
+		}
+		else {
+			return new ResponseEntity<List<JobEntity>>(jobList, HttpStatus.FAILED_DEPENDENCY);
+		}
+	}
+	
+	@GetMapping("/jobs/{jobID}")
+	public ResponseEntity<JobEntity> getJobByID(@PathVariable int jobID) {
+		
+		return jobService.validateAndFindJobByID(jobID);
+	}
+	
+	@PostMapping("/jobs")
+	public ResponseEntity<JobEntity> createJob (@RequestBody JobEntity jobEntity) {
+		
+		JobEntity jEntity = null;
+		
+		try {
+			jEntity = jobService.validateAndSave(jobEntity);
+		}
+		catch(NullPointerException e) {
+			logger.warn(e+" exception thrown");
+			e.toString();
+		}
+		
+		if(jEntity != null) {
+			return new ResponseEntity<JobEntity>(jEntity, HttpStatus.OK);
+		}
+		else {
+			return new ResponseEntity<JobEntity>(jEntity, HttpStatus.FAILED_DEPENDENCY);
+		}
+	}
+	
+	@PutMapping("/jobs/{jobID}")
+	public ResponseEntity<JobEntity> updateJob(@PathVariable int jobID, @RequestBody JobEntity jobEntity) {
+		
+		return jobService.validateAndUpdateJob(jobID, jobEntity);
+	}
+	
+	@DeleteMapping("jobs/{jobID}")
+	public ResponseEntity<Map<String, Boolean>> deleteJob(@PathVariable int jobID) {
+		
+		return jobService.validateAndDeleteJob(jobID);
+	}
+}
